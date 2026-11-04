@@ -1,0 +1,35 @@
+// MapReaper - part of the *Reaper Toolkit, created by John Gwilliams.
+//
+// Gradle build for the MapReaper Burp Suite extension (Montoya API).
+//
+// The Montoya API is declared `compileOnly`: Burp Suite provides it at runtime, so it must NOT be
+// bundled into the extension jar. MapReaper has no other dependencies, so the standard `jar` task
+// already produces a fully self-contained extension jar - no Shadow / fat-jar plugin is required.
+
+plugins {
+    id 'java'
+}
+
+group = 'com.reapertoolkit'
+version = '1.1'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Provided by Burp at runtime. Do not bundle this into the jar.
+    compileOnly 'net.portswigger.burp.extensions:montoya-api:2026.7'
+}
+
+java {
+    // Burp Suite runs on Java 17+. Compiling to 17 keeps the extension broadly compatible.
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+tasks.named('jar') {
+    archiveBaseName = 'MapReaper'
+    archiveVersion = ''   // produce "MapReaper.jar" rather than "MapReaper-1.1.jar"
+}

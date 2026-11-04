@@ -99,7 +99,7 @@ findings exist in Burp, then click the button.
 1. Burp → **Extensions → Add → Extension type: Java**.
 2. Select **`MapReaper.jar`**.
 3. Open the **MapReaper** tab. The Output log shows the load banner:
-   `MapReaper v1.0 … part of the *Reaper Toolkit, created by John Gwilliams`.
+   `MapReaper v1.1 … part of the *Reaper Toolkit, created by John Gwilliams`.
 
 Then either browse the target through Burp (live) or click **Rebuild from Site Map**.
 
@@ -107,22 +107,42 @@ Then either browse the target through Burp (live) or click **Rebuild from Site M
 > HTML/JS/CSS responses are in Burp's Site Map — browse the target through the proxy first. MapReaper
 > parses those bodies for linked hosts.
 
-## Build from source
+## Build from source (Gradle)
 
-No Gradle/Git required. With a JDK (17+) and the Montoya API jar on the classpath (compile-only —
-Burp supplies it at runtime):
+This is a standard Gradle project, which is also the build the PortSwigger **BApp Store** uses.
 
 ```
-javac --release 17 -cp montoya-api-<version>.jar -d out <all .java under source/src>
-jar cf MapReaper.jar -C out .
+gradle build          # or: ./gradlew build  if you add the wrapper
 ```
 
-Montoya is **not** bundled in the jar (Burp provides it). The entry point is
-`burp.reaper.MapReaperExtension` (implements `burp.api.montoya.BurpExtension`); Burp discovers it
-automatically — no manifest `Main-Class` needed.
+The extension jar is written to `build/libs/MapReaper.jar`.
 
-`source/test/Test.java` is an offline unit check of the dependency-free core (host parsing, eTLD+1
-grouping, URL extraction, graph assembly). Compile it against `out` and run `Test`.
+Project layout:
+
+```
+build.gradle              # Gradle build (Groovy DSL)
+settings.gradle           # rootProject.name = 'MapReaper'
+src/main/java/burp/reaper  # extension source
+dev-tests/Test.java        # offline sanity check (not part of the Gradle build)
+```
+
+Key points (all required / expected by the BApp Store):
+
+- The Montoya API is declared **`compileOnly`** — Burp provides it at runtime, so it is **not**
+  bundled into the jar. See `build.gradle`:
+  `compileOnly 'net.portswigger.burp.extensions:montoya-api:2026.7'`.
+- MapReaper has **no other dependencies**, so the ordinary `jar` task produces a fully
+  self-contained extension jar — no Shadow / fat-jar plugin is needed.
+- Compiles to **Java 17** (Burp runs on Java 17+).
+- The entry point is `burp.reaper.MapReaperExtension` (implements `burp.api.montoya.BurpExtension`);
+  Burp discovers it automatically — no manifest `Main-Class` needed.
+
+> Adding the Gradle wrapper (recommended for the BApp repo) is optional: run `gradle wrapper` once
+> locally and commit the generated `gradlew`, `gradlew.bat` and `gradle/wrapper/` files.
+
+`dev-tests/Test.java` is an offline unit check of the dependency-free core (host parsing, eTLD+1
+grouping, URL extraction, graph assembly, path drill-down, finding overlay). It is intentionally kept
+out of `src/` so it is not part of the Gradle build; compile it against the classes and run `Test`.
 
 ## Notes / limitations
 
